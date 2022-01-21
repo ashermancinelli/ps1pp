@@ -1,0 +1,6 @@
+[submodule "tpl/filesystem"]
+	path = tpl/filesystem
+	url = https://github.com/gulrak/filesystem.git
+[submodule "tpl/fmt"]
+	path = tpl/fmt
+	url = https://github.com/fmtlib/fmt.git
