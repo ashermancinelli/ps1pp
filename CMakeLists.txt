@@ -6,5 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(ps1pp CXX)
 
 add_library(tpl INTERFACE)
+option(STATIC "Attempt to statically link everything" OFF)
+
+if (STATIC)
+  target_link_options(tpl INTERFACE "-static")
+
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_link_options(tpl INTERFACE -static-libgcc -static-libstdc++)
+  endif()
+endif()
+
 add_subdirectory(tpl)
 add_subdirectory(src)
