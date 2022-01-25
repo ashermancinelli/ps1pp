@@ -35,7 +35,7 @@ static std::string get_user_name()
 static std::string get_dir()
 {
   char dir[path_max];
-  getcwd(dir, path_max);
+  (void)getcwd(dir, path_max);
 
   char* _home = getenv("HOME");
   if (nullptr == _home) {
@@ -76,7 +76,7 @@ static std::string get_git_str()
   }
 
   char out[path_max];
-  fgets(out, sizeof(out), fp);
+  (void)fgets(out, sizeof(out), fp);
   pclose(fp);
   for (char* i = out; i != (out + strlen(out)); i++) {
     if (*i == '\n') {
@@ -93,8 +93,35 @@ static bool is_git_dir()
   return (not ec) or fs::exists(fs::path(".git"));
 }
 
-int main()
+[[noreturn]]
+static void print_shell_setup(std::string exe)
 {
+  fmt::print(R"(
+  __my_ps1()
+  {
+    PS1=$({})
+  }
+  export PROMPT_COMMAND=__my_ps1
+)", exe);
+  std::exit(EXIT_SUCCESS);
+}
+
+[[noreturn]]
+static void help(std::vector<std::string> args)
+{
+  fmt::print("To make ps1 your shell, evaluate the output of:\n\t$ {} -c", args[0]);
+  std::exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char** argv)
+{
+  const auto args = std::vector<std::string>(argv, argv+argc);
+  if (args[1] == "-c")
+    print_shell_setup(args[0]);
+
+ // if (std::find(args.begin(), args.end(), [] (auto arg) { return arg == "-h"; }) != args.end())
+ //   help(args);
+
   const auto mach = get_machine_name();
   auto dir = get_dir();
   if (dir.size() > max_dir_len) {
