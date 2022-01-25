@@ -94,33 +94,28 @@ static bool is_git_dir()
 }
 
 [[noreturn]]
-static void print_shell_setup(std::string exe)
+static void print_shell_setup(fs::path exe)
 {
-  fmt::print(R"(
-  __my_ps1()
-  {
-    PS1=$({})
-  }
-  export PROMPT_COMMAND=__my_ps1
-)", exe);
+  exe = fs::absolute(exe);
+  fmt::print("__my_ps1() {{ PS1=$({}); }}; export PROMPT_COMMAND=__my_ps1;\n", exe.string());
   std::exit(EXIT_SUCCESS);
 }
 
 [[noreturn]]
 static void help(std::vector<std::string> args)
 {
-  fmt::print("To make ps1 your shell, evaluate the output of:\n\t$ {} -c", args[0]);
+  fmt::print("To make ps1 your shell, evaluate the output of:\n\t$ {} -c\n", args[0]);
   std::exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char** argv)
 {
   const auto args = std::vector<std::string>(argv, argv+argc);
-  if (args[1] == "-c")
+  if (args.size() > 1 and args[1] == "-c")
     print_shell_setup(args[0]);
 
- // if (std::find(args.begin(), args.end(), [] (auto arg) { return arg == "-h"; }) != args.end())
- //   help(args);
+  if (args.size() > 1 and args[1] == "-h")
+    help(args);
 
   const auto mach = get_machine_name();
   auto dir = get_dir();
