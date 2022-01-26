@@ -1,5 +1,3 @@
-#include <fmt/color.h>
-#include <fmt/format.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
@@ -10,9 +8,11 @@
 namespace fs = ghc::filesystem;
 using namespace std::string_literals;
 
+#include "config.hpp"
 static constexpr std::size_t path_max = 1024;
-static const std::string newline = "\n ⦙";
 static constexpr std::size_t max_dir_len = 40;
+
+#define IGNORE(x) if(x);
 
 static std::string get_machine_name()
 {
@@ -35,7 +35,7 @@ static std::string get_user_name()
 static std::string get_dir()
 {
   char dir[path_max];
-  (void)getcwd(dir, path_max);
+  IGNORE(getcwd(dir, path_max));
 
   char* _home = getenv("HOME");
   if (nullptr == _home) {
@@ -54,18 +54,18 @@ static std::string get_dir()
   }
 }
 
-static std::optional<std::string> get_slurm_string()
-{
-  char* slurm_id = getenv("SLURM_JOB_ID");
-  if (slurm_id != NULL) {
-    return fmt::format("{}job {}",
-                       newline,
-                       fmt::format(fg(fmt::color::rebecca_purple),
-                                   "{}",
-                                   slurm_id));
-  }
-  return std::nullopt;
-}
+//static std::optional<std::string> get_slurm_string()
+//{
+//  char* slurm_id = getenv("SLURM_JOB_ID");
+//  if (slurm_id != NULL) {
+//    return fmt::format("{}job {}",
+//                       newline,
+//                       fmt::format(fg(fmt::color::rebecca_purple),
+//                                   "{}",
+//                                   slurm_id));
+//  }
+//  return std::nullopt;
+//}
 
 static std::string get_git_str()
 {
@@ -76,7 +76,7 @@ static std::string get_git_str()
   }
 
   char out[path_max];
-  (void)fgets(out, sizeof(out), fp);
+  IGNORE(fgets(out, sizeof(out), fp));
   pclose(fp);
   for (char* i = out; i != (out + strlen(out)); i++) {
     if (*i == '\n') {
@@ -97,14 +97,14 @@ static bool is_git_dir()
 static void print_shell_setup(fs::path exe)
 {
   exe = fs::absolute(exe);
-  fmt::print("__my_ps1() {{ PS1=$({}); }}; export PROMPT_COMMAND=__my_ps1;\n", exe.string());
+  fmt::print("__my_ps1(){{ local ec=$?; PS1=$({} $ec); }};export PROMPT_COMMAND=__my_ps1;\n", exe.string());
   std::exit(EXIT_SUCCESS);
 }
 
 [[noreturn]]
 static void help(std::vector<std::string> args)
 {
-  fmt::print("To make ps1 your shell, evaluate the output of:\n\t$ {} -c\n", args[0]);
+  fmt::print("To make ps1 your shell, evaluate the output of:\n\t$ eval $({} -c)\n", args[0]);
   std::exit(EXIT_SUCCESS);
 }
 
@@ -116,6 +116,8 @@ int main(int argc, char** argv)
 
   if (args.size() > 1 and args[1] == "-h")
     help(args);
+
+  const auto ec = args.size() > 1 ? std::stoi(args[1]) : EXIT_SUCCESS;
 
   const auto mach = get_machine_name();
   auto dir = get_dir();
@@ -130,17 +132,19 @@ int main(int argc, char** argv)
   const auto name = get_user_name();
   auto git_str = std::string{""};
   if (is_git_dir()) {
-    git_str = fmt::format(" on {}",
-                          fmt::format(fg(fmt::color::light_salmon),
-                                      "{}",
-                                      get_git_str()));
+    const auto branch = fmt::format(fg(git_c), "{}", get_git_str());
+    git_str = fmt::format(git_format_str, fmt::arg("branch", branch));
   }
-  const auto slurmid = get_slurm_string();
-  fmt::print("{} on {} in {}{}{}\n ⤷  ",
-             fmt::format(fg(fmt::color::cyan), "{}", name),
-             fmt::format(fg(fmt::color::yellow), "{}", mach),
-             fmt::format(fg(fmt::color::light_green), "{}", dir),
-             git_str,
-             (slurmid.has_value() ? slurmid.value() : ""));
-  return 0;
+
+  // Unused atm
+  // const auto slurmid = get_slurm_string();
+
+  fmt::print(format_str, 
+      fmt::arg("name", fmt::format(fg(name_c), "{}", name)),
+      fmt::arg("mach", fmt::format(fg(mach_c), "{}", mach)),
+      fmt::arg("dir", fmt::format(fg(dir_c), "{}", dir)),
+      fmt::arg("git", git_str),
+      fmt::arg("ec", format_ec(ec))
+      );
+  return ec;
 }
