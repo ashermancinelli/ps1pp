@@ -10,7 +10,7 @@
  *
  */
 static const std::string git_format_str = " on {branch}";
-static const std::string format_str = "{name} on {mach} in {dir}{git} with {ec}\n ⤜  ";
+static const std::string format_str = "{name} on {mach} in {dir}{git} with {ec}\n ~ ";
 static constexpr auto name_c = fmt::color::cyan;
 static constexpr auto mach_c = fmt::color::yellow;
 static constexpr auto dir_c = fmt::color::light_green;
